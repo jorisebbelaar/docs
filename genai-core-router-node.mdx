@@ -1,0 +1,262 @@
+---
+title: "Router Node"
+description: "Implement dynamic workflow routing with BaseRouter and RouterNode classes to create conditional branching based on processing results."
+---
+
+# Router Node
+
+## Overview
+
+<Info>
+This node enables dynamic routing in a workflow by defining a base router class that selects the next node based on a sequence of routing rules. Each rule is implemented as a `RouterNode`. If no rule matches, a fallback node is used, allowing flexible control of node flow.
+</Info>
+
+The router system consists of two main components:
+
+<CardGroup cols={2}>
+  <Card title="BaseRouter" icon="route">
+    The main router class that orchestrates routing decisions and manages the routing process
+  </Card>
+  <Card title="RouterNode" icon="decision">
+    Individual routing rules that implement specific conditional logic for path selection
+  </Card>
+</CardGroup>
+
+## Router Classes
+
+<Tabs>
+  <Tab title="BaseRouter">
+    ```python
+    class BaseRouter(Node):
+        def process(self, task_context: TaskContext) -> TaskContext:
+            next_node = self.route(task_context)
+            task_context.nodes[self.node_name] = {"next_node": next_node.node_name}
+            return task_context
+
+        def route(self, task_context: TaskContext) -> Node:
+            for route_node in self.routes:
+                next_node = route_node.determine_next_node(task_context)
+                if next_node:
+                    return next_node
+            return self.fallback if self.fallback else None
+    ```
+  </Tab>
+  
+  <Tab title="RouterNode">
+    ```python
+    class RouterNode(ABC):
+        @abstractmethod
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            pass
+
+        @property
+        def node_name(self):
+            return self.__class__.__name__
+    ```
+  </Tab>
+</Tabs>
+
+## How Routing Works
+
+<Steps>
+  <Step title="Process Method Called">
+    The BaseRouter's `process()` method is called during workflow execution
+  </Step>
+  
+  <Step title="Route Evaluation">
+    The router iterates through each `RouterNode` in the `routes` list, calling `determine_next_node()`
+  </Step>
+  
+  <Step title="First Match Wins">
+    The first router rule that returns a node (not None) determines the next step in the workflow
+  </Step>
+  
+  <Step title="Fallback Handling">
+    If no routing rules match, the router uses the fallback node, or None if no fallback is defined
+  </Step>
+  
+  <Step title="Result Storage">
+    The selected next node is stored in the task context for the workflow engine to process
+  </Step>
+</Steps>
+
+## Implementation Example
+
+Here's a comprehensive example from the `quickstart` branch showing a customer service ticket routing system:
+
+<Tabs>
+  <Tab title="Main Router">
+    ```python
+    class TicketRouterNode(BaseRouter):
+        def __init__(self):
+            self.routes = [
+                CloseTicketRouter(),
+                EscalationRouter(),
+                InvoiceRouter(),
+            ]
+            self.fallback = GenerateResponseNode()
+    ```
+  </Tab>
+  
+  <Tab title="Spam Detection Router">
+    ```python
+    class CloseTicketRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            output: FilterSpamNode.OutputType = task_context.nodes["FilterSpamNode"][
+                "result"
+            ].output
+            if not output.is_human and output.confidence > 0.8:
+                return CloseTicketNode()
+            return None
+    ```
+  </Tab>
+  
+  <Tab title="Escalation Router">
+    ```python
+    class EscalationRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            analysis = task_context.nodes["DetermineTicketIntentNode"]["result"].output
+            if analysis.intent.escalate or analysis.escalate:
+                return EscalateTicketNode()
+            return None
+    ```
+  </Tab>
+  
+  <Tab title="Invoice Router">
+    ```python
+    class InvoiceRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            analysis = task_context.nodes["DetermineTicketIntentNode"]["result"].output
+            if analysis.intent == CustomerIntent.BILLING_INVOICE:
+                return ProcessInvoiceNode()
+            return None
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Routing Patterns
+
+<AccordionGroup>
+  <Accordion title="Priority-Based Routing">
+    ```python
+    class PriorityRouter(BaseRouter):
+        def __init__(self):
+            # Order matters - high priority routes first
+            self.routes = [
+                EmergencyRouter(),      # Highest priority
+                UrgentRouter(),         # High priority  
+                StandardRouter(),       # Normal priority
+            ]
+            self.fallback = DefaultProcessingNode()
+    ```
+  </Accordion>
+  
+  <Accordion title="Multi-Condition Routing">
+    ```python
+    class ComplexRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            event = task_context.event
+            spam_result = task_context.nodes["FilterSpamNode"]["result"].output
+            sentiment_result = task_context.nodes["SentimentNode"]["result"].output
+            
+            # Multiple conditions for routing decision
+            if (event.customer_tier == "premium" and 
+                sentiment_result.sentiment == "negative" and 
+                spam_result.is_human):
+                return PremiumEscalationNode()
+            
+            return None
+    ```
+  </Accordion>
+  
+  <Accordion title="Score-Based Routing">
+    ```python
+    class ScoreBasedRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            # Calculate composite score from multiple nodes
+            spam_confidence = task_context.nodes["FilterSpamNode"]["result"].output.confidence
+            intent_confidence = task_context.nodes["IntentNode"]["result"].output.confidence
+            
+            composite_score = (spam_confidence + intent_confidence) / 2
+            
+            if composite_score > 0.9:
+                return HighConfidenceNode()
+            elif composite_score > 0.7:
+                return MediumConfidenceNode()
+            else:
+                return LowConfidenceNode()
+    ```
+  </Accordion>
+  
+  <Accordion title="Dynamic Routing with Metadata">
+    ```python
+    class MetadataRouter(RouterNode):
+        def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+            # Use metadata for routing decisions
+            workflow_config = task_context.metadata.get("config", {})
+            
+            if workflow_config.get("experimental_features", False):
+                return ExperimentalProcessingNode()
+            elif workflow_config.get("debug_mode", False):
+                return DebugProcessingNode()
+            
+            return None
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Order Matters" icon="list-ordered">
+    Arrange router nodes in order of priority - the first matching rule wins
+  </Card>
+  <Card title="Clear Conditions" icon="eye">
+    Make routing conditions explicit and easy to understand for maintainability
+  </Card>
+  <Card title="Fallback Strategy" icon="shield">
+    Always provide a meaningful fallback node to handle unexpected cases
+  </Card>
+  <Card title="Test Coverage" icon="bug">
+    Thoroughly test all routing paths to ensure correct workflow behavior
+  </Card>
+</CardGroup>
+
+## Configuration in WorkflowSchema
+
+<Warning>
+Remember to configure your router as a router node in the WorkflowSchema by setting `is_router=True`:
+</Warning>
+
+```python
+NodeConfig(
+    node=TicketRouterNode,
+    connections=[CloseTicketNode, EscalateTicketNode, ProcessInvoiceNode, GenerateResponseNode],
+    is_router=True,
+    description="Route tickets based on analysis results",
+)
+```
+
+## Common Use Cases
+
+<Steps>
+  <Step title="Business Logic Routing">
+    Route based on business rules, customer tiers, or processing requirements
+  </Step>
+  
+  <Step title="Error Handling">
+    Route to different error handling nodes based on the type of error encountered
+  </Step>
+  
+  <Step title="A/B Testing">
+    Route users to different processing paths for experimentation
+  </Step>
+  
+  <Step title="Load Balancing">
+    Distribute processing across different nodes based on current load or capacity
+  </Step>
+</Steps>
+
+<Tip>
+The router system provides powerful conditional logic capabilities that make your workflows adaptive and intelligent, allowing them to respond dynamically to different types of input and processing results.
+</Tip>

@@ -1,0 +1,105 @@
+---
+title: "Define Your Schema"
+description: "Create a Pydantic schema to define your data structure"
+---
+
+When implementing a new workflow, the first step is to define the structure of the data you expect from the event. This involves creating a Pydantic schema that serves as the blueprint for your data.
+
+## Why Schemas Matter
+
+<CardGroup cols={3}>
+  <Card title="Type Safety" icon="shield-check">
+    Ensures data integrity with automatic validation
+  </Card>
+  
+  <Card title="Documentation" icon="book">
+    Self-documenting code with field descriptions
+  </Card>
+  
+  <Card title="Serialization" icon="arrows-rotate">
+    Easy conversion between JSON and Python objects
+  </Card>
+</CardGroup>
+
+## Customer Care Event Schema
+
+For our customer care use case, we've defined the following schema:
+
+```python
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field
+from uuid import UUID, uuid4
+
+
+class CustomerCareEventSchema(BaseModel):
+    ticket_id: UUID = Field(
+        default_factory=uuid4, 
+        description="Unique identifier for the ticket"
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Time when the ticket was created",
+    )
+    from_email: str = Field(
+        ..., 
+        description="Email address of the sender"
+    )
+    to_email: str = Field(
+        ..., 
+        description="Email address of the recipient"
+    )
+    sender: str = Field(
+        ..., 
+        description="Name or identifier of the sender"
+    )
+    subject: str = Field(
+        ..., 
+        description="Subject of the ticket"
+    )
+    body: str = Field(
+        ..., 
+        description="The body of the ticket"
+    )
+```
+
+## Schema Components Explained
+
+<AccordionGroup>
+  <Accordion title="Automatic ID Generation">
+    The `ticket_id` field uses `default_factory=uuid4` to automatically generate a unique identifier for each ticket when created.
+  </Accordion>
+  
+  <Accordion title="Timestamp Management">
+    The `timestamp` field automatically captures the creation time in UTC, ensuring consistent time tracking across different timezones.
+  </Accordion>
+  
+  <Accordion title="Required Fields">
+    Fields marked with `...` (ellipsis) are required and must be provided when creating an event instance.
+  </Accordion>
+  
+  <Accordion title="Field Descriptions">
+    Each field includes a description that serves as inline documentation and helps with API documentation generation.
+  </Accordion>
+</AccordionGroup>
+
+## File Location
+
+<Note>
+Schemas should be defined in the folder: `app/schemas`
+</Note>
+
+This keeps all your data models organized in one place, making them easy to find and maintain.
+
+## Best Practices
+
+<Warning>
+Always include field descriptions and use appropriate field types to ensure proper validation and documentation.
+</Warning>
+
+<Tip>
+Use `default_factory` for fields that should be automatically generated, like IDs and timestamps, to avoid mutable default arguments.
+</Tip>
+
+## Next Steps
+
+With the schema defined, you're ready to create the workflow definition that will process these events.

@@ -1,0 +1,75 @@
+---
+title: "Quickstart Overview"
+description: "Build your first GenAI workflow - a customer care automation system"
+---
+
+The quickstart guide demonstrates how GenAI Launchpad works through a pre-implemented customer care use case. You won't need to write any code yourself; instead, this guide walks you through the steps required to build your own workflows.
+
+## General Development Flow
+
+<Steps>
+  <Step title="Define an event schema">
+    Create a Pydantic model that defines the structure of your incoming data
+  </Step>
+  
+  <Step title="Implement the endpoint">
+    Build a FastAPI endpoint that receives events and triggers workflow processing
+  </Step>
+  
+  <Step title="Build the workflow">
+    Design and implement the workflow logic using various node types
+  </Step>
+</Steps>
+
+## What We're Building
+
+In this quickstart, we'll explore a customer care automation system that:
+
+<CardGroup cols={2}>
+  <Card title="Analyzes Tickets" icon="magnifying-glass">
+    Processes incoming support tickets through intelligent analysis
+  </Card>
+  
+  <Card title="Filters Spam" icon="shield">
+    Detects and filters out spam messages automatically
+  </Card>
+  
+  <Card title="Routes Intelligently" icon="route">
+    Makes smart routing decisions based on ticket content
+  </Card>
+  
+  <Card title="Generates Responses" icon="message">
+    Creates appropriate AI-powered responses to customer queries
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+<Info>
+We assume you've already completed the [installation steps](/genai-installation) in the previous chapter.
+</Info>
+
+To access the quickstart code, switch to the quickstart branch:
+
+```bash
+git checkout quickstart && git pull
+```
+
+<Note>
+The quickstart branch contains a fully implemented example that you can run immediately to see the launchpad in action.
+</Note>
+
+## What You'll Learn
+
+By following this quickstart guide, you'll understand:
+
+- How to structure event schemas for your use case
+- How to create API endpoints that trigger workflows
+- How to build complex workflows with multiple node types
+- How to integrate AI models for intelligent processing
+- How to test workflows locally and end-to-end
+- How to monitor results in Supabase Studio
+
+## Next Steps
+
+Proceed through each section in order to understand the complete workflow development process.

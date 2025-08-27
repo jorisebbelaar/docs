@@ -1,0 +1,179 @@
+---
+title: "Testing Your Workflow"
+description: "Test workflows locally before deployment"
+---
+
+Before deploying your workflow, it's essential to test it locally. GenAI Launchpad provides a convenient playground for testing and debugging workflows without going through the full API pipeline.
+
+## Local Testing Setup
+
+The testing infrastructure consists of:
+
+<CardGroup cols={2}>
+  <Card title="Test Events" icon="file-code">
+    Pre-defined test payloads in `requests/events` folder that match your schema
+  </Card>
+  
+  <Card title="Workflow Playground" icon="play">
+    Python script at `playground/workflow_playground.py` for direct workflow execution
+  </Card>
+</CardGroup>
+
+## Running a Test
+
+To test your workflow locally, use the following simple pattern:
+
+```python
+event = EventFactory.create_event(event_key="product")
+workflow = CustomerCareWorkflow()
+result = workflow.run(event)
+```
+
+<Info>
+The `event_key` parameter corresponds to a JSON file name in the `requests/events` directory. For example, `event_key="product"` loads `requests/events/product.json`.
+</Info>
+
+## Test Event Examples
+
+<Tabs>
+  <Tab title="Product Query">
+    ```json
+    {
+      "from_email": "customer@example.com",
+      "to_email": "support@company.com",
+      "sender": "Jane Smith",
+      "subject": "Question about product features",
+      "body": "I'm interested in your premium plan. Can you tell me what features are included?"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Billing Issue">
+    ```json
+    {
+      "from_email": "user@example.com",
+      "to_email": "billing@company.com",
+      "sender": "John Doe",
+      "subject": "Invoice request",
+      "body": "I need a copy of my invoice from last month for accounting purposes."
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Spam Message">
+    ```json
+    {
+      "from_email": "spam@bot.com",
+      "to_email": "support@company.com",
+      "sender": "Bot123",
+      "subject": "$$$ MAKE MONEY FAST $$$",
+      "body": "Click here for amazing deals! Limited time offer!!!"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Benefits of Local Testing
+
+<AccordionGroup>
+  <Accordion title="Immediate Feedback">
+    See results instantly without waiting for async processing or checking databases
+  </Accordion>
+  
+  <Accordion title="Easy Debugging">
+    Add breakpoints and step through your workflow logic in your IDE
+  </Accordion>
+  
+  <Accordion title="No Dependencies">
+    Test without running Docker containers, Celery workers, or databases
+  </Accordion>
+  
+  <Accordion title="Rapid Iteration">
+    Quickly modify and test workflow logic without restarting services
+  </Accordion>
+</AccordionGroup>
+
+## Creating Custom Test Events
+
+To add your own test events:
+
+<Steps>
+  <Step title="Create JSON file">
+    Add a new JSON file to `requests/events/` with your test data
+  </Step>
+  
+  <Step title="Match schema">
+    Ensure the JSON structure matches your event schema exactly
+  </Step>
+  
+  <Step title="Reference by name">
+    Use the filename (without .json) as the `event_key` in EventFactory
+  </Step>
+</Steps>
+
+## Testing Different Scenarios
+
+<Warning>
+Always test edge cases including:
+- Invalid or missing data
+- Spam detection scenarios
+- Various intent classifications
+- Error conditions
+</Warning>
+
+## Debugging Tips
+
+<CardGroup cols={2}>
+  <Card title="Add Logging" icon="terminal">
+    Insert `logging.info()` statements in your nodes to track execution flow
+  </Card>
+  
+  <Card title="Print Context" icon="bug">
+    Use `print(task_context.nodes)` to inspect intermediate results
+  </Card>
+  
+  <Card title="Test Individual Nodes" icon="puzzle-piece">
+    You can test single nodes in isolation before combining them
+  </Card>
+  
+  <Card title="Check AI Responses" icon="robot">
+    Verify that AI outputs match your expected structure
+  </Card>
+</CardGroup>
+
+## Example Test Script
+
+Here's a complete example of testing multiple scenarios:
+
+```python
+from playground.event_factory import EventFactory
+from workflows.customer_care_workflow import CustomerCareWorkflow
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Test different event types
+test_events = ["product", "billing", "spam", "refund"]
+
+for event_key in test_events:
+    print(f"\n--- Testing {event_key} event ---")
+    
+    # Create and run workflow
+    event = EventFactory.create_event(event_key=event_key)
+    workflow = CustomerCareWorkflow()
+    result = workflow.run(event)
+    
+    # Display results
+    print(f"Workflow completed: {result.success}")
+    if result.error:
+        print(f"Error: {result.error}")
+```
+
+<Tip>
+Run tests with different log levels (`DEBUG`, `INFO`, `WARNING`) to control the amount of output you see during testing.
+</Tip>
+
+## Next Steps
+
+Once you've successfully tested your workflow locally, you're ready to perform end-to-end testing with the full system.

@@ -1,0 +1,98 @@
+---
+title: "Prompt Management"
+description: "Create and manage dynamic prompts using Jinja templates for GenAI applications"
+---
+
+# Prompt Management
+
+<Info>
+The launchpad provides a prompt management system using **Jinja** templates. This system enables developers to create, manage, and render dynamic prompts that can easily adapt to different contexts and variables.
+</Info>
+
+## What Are Jinja Templates?
+
+<Card title="Template Definition" icon="file-text">
+Jinja templates are text files containing placeholders for variables and logic, marked with the `{{ ... }}` and `{% ... %}` syntax. Jinja is a powerful, Python-based templating engine commonly used for generating dynamic content.
+</Card>
+
+### Example Jinja Template
+
+<Tabs>
+  <Tab title="Template Structure">
+    ```jinja
+    ---
+    description: Simple greeting template
+    author: ExampleAuthor
+    ---
+    Hello, {{ name }}! Welcome to our platform.
+    ```
+  </Tab>
+  <Tab title="Components Explained">
+    <Steps>
+      <Step title="Frontmatter">
+        The section at the top (between `---`) is called **frontmatter**, and is used to store metadata such as description and author.
+      </Step>
+      <Step title="Variable Placeholder">
+        The `{{ name }}` placeholder will be replaced dynamically when the template is rendered.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Using Jinja Templates for Dynamic Prompts
+
+<Warning>
+By leveraging Jinja templates, prompts are not static strings, but reusable blueprints. Variables such as user names, input values, or application state can be injected into prompts on-the-fly.
+</Warning>
+
+### How It Works
+
+<Steps>
+  <Step title="Template Storage">
+    Prompt templates are stored as `.j2` files, each potentially containing both metadata (frontmatter) and the Jinja content.
+  </Step>
+  <Step title="Variable Injection">
+    At runtime, the system loads the relevant template and replaces all Jinja variables with the provided values.
+  </Step>
+  <Step title="Metadata Extraction">
+    The system can also extract metadata and determine what variables are required for each template, improving development transparency and reusability.
+  </Step>
+</Steps>
+
+### Example Usage
+
+<Tabs>
+  <Tab title="Rendering Template">
+    ```python
+    prompt = PromptManager.get_prompt("greeting", name="Alice")
+    print(prompt)
+    # Output: Hello, Alice! Welcome to our platform.
+    ```
+  </Tab>
+  <Tab title="Template Introspection">
+    ```python
+    info = PromptManager.get_template_info("greeting")
+    print(info["variables"])  # Example output: ['name']
+    ```
+  </Tab>
+</Tabs>
+
+## Key Benefits
+
+<CardGroup cols={3}>
+  <Card title="Separation of Concerns" icon="separate">
+    **Separation of Content and Logic:** Prompts can be managed independently of code changes.
+  </Card>
+  
+  <Card title="Dynamic Personalization" icon="user-gear">
+    **Dynamic Personalization:** Easily customize output in real-time based on context or user data.
+  </Card>
+  
+  <Card title="Self-Documenting" icon="document-text">
+    **Self-Documenting:** Frontmatter metadata helps document prompts and requirements for maintainers.
+  </Card>
+</CardGroup>
+
+<Tip>
+This template-based approach is particularly valuable for GenAI applications where prompts need to be dynamically generated based on user input, context, or application state.
+</Tip>

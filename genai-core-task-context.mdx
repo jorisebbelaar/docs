@@ -1,0 +1,146 @@
+---
+title: "Task Context"
+description: "Learn how the TaskContext provides stateful data management throughout workflow execution, enabling seamless data sharing between nodes."
+---
+
+# Task Context
+
+<Info>
+The task context is a stateful Pydantic model used throughout the workflow. Its purpose is to provide a single reference point that can be accessed from any node within the workflow, allowing relevant data to be stored and retrieved as needed.
+</Info>
+
+## TaskContext Class
+
+The `TaskContext` class serves as the central data container for workflow execution:
+
+```python
+class TaskContext(BaseModel):
+    """Context container for workflow task execution.
+
+    TaskContext maintains the state and results of a workflow's execution,
+    tracking the original event, intermediate node results, and additional
+    metadata throughout the processing flow.
+
+    Attributes:
+        event: The original event that triggered the workflow
+        nodes: Dictionary storing results and state from each node's execution
+        metadata: Dictionary storing workflow-level metadata and configuration
+
+    Example:
+        context = TaskContext(
+            event=incoming_event,
+            nodes={"AnalyzeNode": {"score": 0.95}},
+            metadata={"priority": "high"}
+        )
+    """
+
+    event: Any
+    nodes: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Stores results and state from each node's execution",
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Stores workflow-level metadata and configuration",
+    )
+
+    def update_node(self, node_name: str, **kwargs):
+        self.nodes[node_name] = {**self.nodes.get(node_name, {}), **kwargs}
+```
+
+<CardGroup cols={3}>
+  <Card title="Event Data" icon="inbox">
+    Stores the original triggering event
+  </Card>
+  <Card title="Node Results" icon="nodes">
+    Maintains results from each node execution
+  </Card>
+  <Card title="Metadata" icon="tag">
+    Stores workflow-level configuration and metadata
+  </Card>
+</CardGroup>
+
+## The Event Attribute
+
+<Tabs>
+  <Tab title="Overview">
+    The `event` attribute in `TaskContext` serves as the main entry point for workflow input data. When a workflow is initialized, the provided event is parsed according to the `event_schema` specified within the `WorkflowSchema`.
+  </Tab>
+  <Tab title="Dynamic Support">
+    This mechanism allows the workflow system to dynamically support a wide range of event formats, as each workflow can define its own event schema. As a result, you can implement multiple workflows, each tailored to process different types of input events without modifying the shared workflow infrastructure.
+  </Tab>
+</Tabs>
+
+**Example WorkflowSchema:**
+
+```python
+class PlaceholderWorkflow(Workflow):
+    workflow_schema = WorkflowSchema(
+        description="",
+        event_schema=PlaceholderEventSchema,
+        start=InitialNode,
+        nodes=[
+            NodeConfig(
+                node=InitialNode,
+                connections=[],
+                description="",
+                concurrent_nodes=[],
+            ),
+        ],
+    )
+```
+
+## Type Hinting
+
+<Warning>
+By default, the `event` attribute of `TaskContext` has the type `Any`, which means you won't get autocomplete or type checking when accessing its fields or methods.
+</Warning>
+
+However, since each workflow defines its own `event_schema`, you already know the expected structure of `event` within that workflow.
+
+<Tip>
+To benefit from IDE features like autocomplete and static type checking, explicitly type the `event` attribute when retrieving it from the `TaskContext`. This makes your code more readable and helps catch errors earlier.
+</Tip>
+
+**Example:**
+
+```python
+event: PlaceholderEventSchema = task_context.event
+```
+
+<Steps>
+  <Step title="Define Event Schema">
+    Create a Pydantic model for your event structure
+  </Step>
+  <Step title="Configure Workflow">
+    Set the event_schema in your WorkflowSchema
+  </Step>
+  <Step title="Type the Event">
+    Cast the event to your schema type in node processing
+  </Step>
+  <Step title="Enjoy Type Safety">
+    Get full IDE support and compile-time error checking
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Event Schema Design">
+    Design your event schemas to be specific and well-documented. Use descriptive field names and include validation constraints where appropriate.
+  </Accordion>
+  
+  <Accordion title="Node Result Storage">
+    Store node results with clear, descriptive keys. Consider using the node's class name for consistency across your workflow.
+  </Accordion>
+  
+  <Accordion title="Metadata Usage">
+    Use the metadata dictionary for workflow-level configuration that doesn't belong to any specific node but affects the overall execution.
+  </Accordion>
+  
+  <Accordion title="Type Safety">
+    Always cast the event to your specific schema type to maintain type safety and improve code maintainability.
+  </Accordion>
+</AccordionGroup>
+
+Replace `PlaceholderEventSchema` with the actual schema used in your workflow. This allows your IDE to provide intelligent code suggestions and enforce type safety when working with the event object.

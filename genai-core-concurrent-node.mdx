@@ -1,0 +1,229 @@
+---
+title: "Concurrent Node"
+description: "Learn how to implement concurrent processing with ConcurrentNode to improve performance by running independent operations in parallel."
+---
+
+# Concurrent Node
+
+## Overview
+
+<Info>
+This node is a replacement for the `ParallelNode` class since Launchpad v3.0.0. The concurrent node enables the concurrent execution of multiple child nodes whose operations do not depend on one another's outputs.
+</Info>
+
+The ConcurrentNode is particularly useful for scenarios such as:
+
+<CardGroup cols={2}>
+  <Card title="Independent Validations" icon="shield-check">
+    Running validation steps concurrently without dependencies
+  </Card>
+  <Card title="Parallel Transformations" icon="arrows-split-up-and-left">
+    Applying independent transformations or checks simultaneously
+  </Card>
+  <Card title="Performance Optimization" icon="bolt">
+    Reducing overall task completion time by leveraging parallelism
+  </Card>
+  <Card title="Guardrails Processing" icon="shield">
+    Running multiple guardrails or safety checks in parallel
+  </Card>
+</CardGroup>
+
+<Warning>
+After implementing the child nodes (which can be regular `Node` or `AgentNode` instances), they need to be added to the `NodeConfig` in the `WorkflowSchema` using the `concurrent_nodes` parameter.
+</Warning>
+
+## ConcurrentNode Class
+
+The `ConcurrentNode` provides a foundation for concurrent execution using asyncio:
+
+```python
+class ConcurrentNode(Node, ABC):
+    """
+    Base class for nodes that execute other nodes concurrently using asyncio.
+
+    This class provides a method to execute a list of nodes concurrently on a single thread,
+    using asyncio.gather. This ensures that I/O-bound operations can proceed in parallel
+    without blocking the main thread or event loop.
+
+    Subclasses must implement the `process` method to define the specific logic of the concurrent node.
+    """
+
+    async def execute_nodes_concurrently(self, task_context: TaskContext):
+        node_config: NodeConfig = task_context.metadata["nodes"][self.__class__]
+        coroutines = [
+            node().process(task_context) for node in node_config.parallel_nodes
+        ]
+        return await asyncio.gather(*coroutines)
+
+    @abstractmethod
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        pass
+```
+
+<Tip>
+The `execute_nodes_concurrently` method uses `asyncio.gather()` to run all child nodes simultaneously, which is perfect for I/O-bound operations that can benefit from concurrent execution.
+</Tip>
+
+## Implementation Example
+
+Here's a practical example from the `quickstart` branch showing how to implement a concurrent node:
+
+<Tabs>
+  <Tab title="ConcurrentNode Implementation">
+    ```python
+    class AnalyzeTicketNode(ConcurrentNode):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            await self.execute_nodes_concurrently(task_context)
+            return task_context
+    ```
+  </Tab>
+  
+  <Tab title="WorkflowSchema Configuration">
+    ```python
+    class CustomerCareWorkflow(Workflow):
+        workflow_schema = WorkflowSchema(
+            description="Customer care workflow with concurrent analysis",
+            event_schema=CustomerCareEventSchema,
+            start=AnalyzeTicketNode,
+            nodes=[
+                NodeConfig(
+                    node=AnalyzeTicketNode,
+                    connections=[TicketRouterNode],
+                    description="Concurrent analysis of customer ticket",
+                    concurrent_nodes=[
+                        DetermineTicketIntentNode,
+                        FilterSpamNode,
+                        ValidateTicketNode,
+                    ],
+                ),
+                # ... other nodes
+            ],
+        )
+    ```
+  </Tab>
+</Tabs>
+
+## How It Works
+
+<Steps>
+  <Step title="Node Configuration">
+    Configure the concurrent nodes in your WorkflowSchema by specifying them in the `concurrent_nodes` list
+  </Step>
+  
+  <Step title="Concurrent Execution">
+    When `execute_nodes_concurrently()` is called, it creates coroutines for each child node and runs them simultaneously using `asyncio.gather()`
+  </Step>
+  
+  <Step title="Result Collection">
+    All child nodes process the same `task_context` and can store their results independently using `task_context.update_node()`
+  </Step>
+  
+  <Step title="Workflow Continuation">
+    After all concurrent nodes complete, the workflow continues to the next node in the pipeline
+  </Step>
+</Steps>
+
+## Advanced Usage Patterns
+
+<AccordionGroup>
+  <Accordion title="Error Handling">
+    ```python
+    class RobustConcurrentNode(ConcurrentNode):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            try:
+                await self.execute_nodes_concurrently(task_context)
+            except Exception as e:
+                # Handle errors from concurrent execution
+                task_context.update_node(
+                    node_name=self.node_name, 
+                    error=str(e),
+                    status="partial_failure"
+                )
+            return task_context
+    ```
+  </Accordion>
+  
+  <Accordion title="Selective Result Processing">
+    ```python
+    class SelectiveConcurrentNode(ConcurrentNode):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            await self.execute_nodes_concurrently(task_context)
+            
+            # Process results from concurrent nodes
+            spam_result = task_context.nodes.get("FilterSpamNode", {}).get("result")
+            intent_result = task_context.nodes.get("DetermineTicketIntentNode", {}).get("result")
+            
+            # Combine or analyze concurrent results
+            combined_analysis = {
+                "is_spam": spam_result.output.is_human if spam_result else None,
+                "intent": intent_result.output.intent if intent_result else None,
+                "processed_at": datetime.utcnow().isoformat()
+            }
+            
+            task_context.update_node(
+                node_name=self.node_name,
+                combined_analysis=combined_analysis
+            )
+            
+            return task_context
+    ```
+  </Accordion>
+  
+  <Accordion title="Conditional Concurrent Execution">
+    ```python
+    class ConditionalConcurrentNode(ConcurrentNode):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            event: MyEventSchema = task_context.event
+            
+            # Only run concurrent nodes for high-priority events
+            if event.priority == "high":
+                await self.execute_nodes_concurrently(task_context)
+            else:
+                # Run a simpler, faster processing path
+                task_context.update_node(
+                    node_name=self.node_name,
+                    processing_type="standard",
+                    concurrent_execution=False
+                )
+            
+            return task_context
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Considerations
+
+<Tip>
+**When to Use ConcurrentNode:**
+- Child nodes perform I/O-bound operations (API calls, database queries, file operations)
+- Operations are independent and don't rely on each other's outputs
+- You want to reduce total processing time
+- Multiple validation or analysis steps can run simultaneously
+</Tip>
+
+<Warning>
+**When NOT to Use ConcurrentNode:**
+- Child nodes have dependencies on each other's outputs
+- Operations are CPU-bound rather than I/O-bound
+- The overhead of concurrent execution exceeds the benefits
+- You need strict sequential processing
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Independent Operations" icon="arrows-split-up-and-left">
+    Ensure concurrent child nodes are truly independent and don't depend on each other's results
+  </Card>
+  <Card title="Resource Management" icon="server">
+    Be mindful of resource usage when running multiple concurrent operations
+  </Card>
+  <Card title="Error Isolation" icon="shield-exclamation">
+    Design child nodes to handle errors gracefully to prevent failures from affecting other concurrent operations
+  </Card>
+  <Card title="Result Aggregation" icon="layer-group">
+    Consider how you'll aggregate or process results from multiple concurrent nodes
+  </Card>
+</CardGroup>
+
+The ConcurrentNode is an excellent choice for improving workflow performance when you have multiple independent operations that can benefit from parallel execution.

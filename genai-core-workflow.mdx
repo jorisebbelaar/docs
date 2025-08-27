@@ -1,0 +1,163 @@
+---
+title: "Workflow Orchestration"
+description: "Understand the DAG-based workflow system that manages node execution and data flow through directed processing pipelines."
+---
+
+# Workflow Orchestration
+
+<Info>
+The workflow system is built around the concept of a directed acyclic graph (DAG) where nodes represent processing steps and edges represent the flow of data between them. The `Workflow` class in `workflow.py` serves as the orchestrator, managing the execution flow and passing the task context between nodes.
+</Info>
+
+## Workflow Class
+
+The foundation of the workflow system is the abstract `Workflow` class:
+
+```python
+class Workflow(ABC):
+    """Abstract base class for defining processing workflows.
+
+    The Workflow class provides a framework for creating processing workflows
+    with multiple nodes and routing logic. Each workflow must define its structure
+    using a WorkflowSchema.
+    """
+```
+
+<CardGroup cols={2}>
+  <Card title="Abstract Base Class" icon="cube">
+    Concrete workflows must extend this class
+  </Card>
+  <Card title="Schema Validation" icon="shield-check">
+    Validates workflow schema during initialization
+  </Card>
+  <Card title="Node Execution" icon="play">
+    Manages node execution and routing
+  </Card>
+  <Card title="Context Management" icon="database">
+    Handles task context passing between nodes
+  </Card>
+</CardGroup>
+
+## Schema Definitions
+
+The `schema.py` module defines the structure and configuration of workflows using Pydantic models.
+
+### WorkflowSchema
+
+```python
+class WorkflowSchema(BaseModel):
+    """Schema definition for a complete workflow.
+
+    WorkflowSchema defines the overall structure of a processing workflow,
+    including its entry point and all constituent nodes.
+    """
+```
+
+<Tabs>
+  <Tab title="Key Attributes">
+    - `description`: Optional description of the workflow's purpose
+    - `event_schema`: Pydantic model for validating incoming events
+    - `start`: The entry point Node class for the workflow
+    - `nodes`: List of NodeConfig objects defining the workflow structure
+  </Tab>
+  <Tab title="Benefits">
+    - **Type Safety**: Pydantic models ensure type validation
+    - **Documentation**: Built-in schema documentation
+    - **Validation**: Automatic validation of workflow structure
+    - **IDE Support**: Full autocomplete and type checking
+  </Tab>
+</Tabs>
+
+### NodeConfig
+
+```python
+class NodeConfig(BaseModel):
+    """Configuration model for workflow nodes.
+
+    NodeConfig defines the structure and behavior of a single node within
+    a workflow, including its connections to other nodes and routing properties.
+    """
+```
+
+<Info>
+**NodeConfig Attributes:**
+- `node`: The Node class to be instantiated
+- `connections`: List of Node classes this node can connect to
+- `is_router`: Flag indicating if this node performs routing logic
+- `description`: Optional description of the node's purpose
+- `concurrent_nodes`: Optional list of Node classes that can run concurrently
+</Info>
+
+## Workflow Validation
+
+<Warning>
+The `validate.py` module provides validation logic for workflow schemas, ensuring they form valid directed acyclic graphs (DAGs) and have proper routing configurations.
+</Warning>
+
+**Key Validation Features:**
+
+<Steps>
+  <Step title="DAG Validation">
+    Validates that the workflow forms a proper DAG with no cycles
+  </Step>
+  <Step title="Reachability Check">
+    Ensures all nodes are reachable from the start node
+  </Step>
+  <Step title="Router Validation">
+    Validates that only router nodes have multiple connections
+  </Step>
+</Steps>
+
+## Workflow Example
+
+Here's a complete example of a workflow implementation:
+
+```python
+from core.schema import WorkflowSchema, NodeConfig
+from core.workflow import Workflow
+from schemas.example_schema import ExampleEventSchema
+from workflows.example_workflow_nodes.initial_node import InitialNode
+from workflows.example_workflow_nodes.process_node import ProcessNode
+from workflows.example_workflow_nodes.router_node import ExampleRouter
+from workflows.example_workflow_nodes.success_node import SuccessNode
+from workflows.example_workflow_nodes.error_node import ErrorNode
+
+class ExampleWorkflow(Workflow):
+    workflow_schema = WorkflowSchema(
+        description="Example workflow for processing data",
+        event_schema=ExampleEventSchema,
+        start=InitialNode,
+        nodes=[
+            NodeConfig(
+                node=InitialNode,
+                connections=[ProcessNode],
+                description="Initial processing of the event",
+            ),
+            NodeConfig(
+                node=ProcessNode,
+                connections=[ExampleRouter],
+                description="Process the data",
+            ),
+            NodeConfig(
+                node=ExampleRouter,
+                connections=[SuccessNode, ErrorNode],
+                is_router=True,
+                description="Route based on processing results",
+            ),
+            NodeConfig(
+                node=SuccessNode,
+                connections=[],
+                description="Handle successful processing",
+            ),
+            NodeConfig(
+                node=ErrorNode,
+                connections=[],
+                description="Handle processing errors",
+            ),
+        ],
+    )
+```
+
+<Tip>
+This example demonstrates a typical workflow pattern: initial processing, data transformation, routing based on results, and terminal nodes for success and error handling.
+</Tip>

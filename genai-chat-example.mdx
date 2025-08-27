@@ -1,0 +1,267 @@
+---
+title: "Chat Completion Example"
+description: "Build a chat interface with real-time and direct response modes"
+---
+
+This example demonstrates two different approaches to implementing chat completion using GenAI Launchpad, showcasing the flexibility of the platform for different use cases.
+
+## Implementation Modes
+
+<CardGroup cols={2}>
+  <Card title="Direct Response Mode" icon="reply">
+    The frontend sends a prompt via POST request. The backend processes it synchronously and returns the complete AI-generated response immediately.
+    
+    **Best for:** Simple chatbots, quick responses, minimal infrastructure
+  </Card>
+  
+  <Card title="Real-Time Background Mode" icon="bolt">
+    The backend queues the request as a background job. The frontend receives updates via Supabase's WebSocket connection as the database is updated.
+    
+    **Best for:** Long-running tasks, complex workflows, scalable applications
+  </Card>
+</CardGroup>
+
+<Info>
+Both modes simulate streaming on the frontend by progressively displaying the message, creating a natural typing effect for better user experience.
+</Info>
+
+## Setup Guide
+
+<Steps>
+  <Step title="Switch to the example branch">
+    Navigate to your backend repository and checkout the chat example:
+    
+    ```bash
+    git checkout example/chat
+    ```
+    
+    <Tip>
+    This branch contains pre-configured chat endpoints and workflow implementations.
+    </Tip>
+  </Step>
+  
+  <Step title="Apply database migrations">
+    Navigate to the `app/` directory and run migrations:
+    
+    ```bash
+    cd app/
+    ./migrate.sh
+    ```
+    
+    <Warning>
+    If you encounter migration conflicts, you may need to remove existing database volumes first:
+    ```bash
+    docker volume rm genai-launchpad_postgres_data
+    ```
+    </Warning>
+  </Step>
+  
+  <Step title="Clone the frontend repository">
+    Get the example frontend application:
+    
+    ```bash
+    git clone git@github.com:datalumina/genai-launchpad-chat-example-frontend.git
+    cd genai-launchpad-chat-example-frontend
+    ```
+  </Step>
+  
+  <Step title="Configure the frontend">
+    Follow the README instructions in the frontend repository to:
+    - Install dependencies
+    - Configure environment variables
+    - Set up Supabase connection
+    - Run the development server
+  </Step>
+</Steps>
+
+## Architecture Overview
+
+<Tabs>
+  <Tab title="Direct Response">
+    ```mermaid
+    sequenceDiagram
+        Frontend->>API: POST /chat/direct
+        API->>LLM: Generate completion
+        LLM-->>API: Return response
+        API-->>Frontend: JSON response
+        Frontend->>UI: Simulate streaming
+    ```
+    
+    **Characteristics:**
+    - Synchronous processing
+    - Lower latency for short responses
+    - Simpler error handling
+    - Limited by request timeout
+  </Tab>
+  
+  <Tab title="Background Processing">
+    ```mermaid
+    sequenceDiagram
+        Frontend->>API: POST /chat/async
+        API->>Celery: Queue task
+        API-->>Frontend: Task ID
+        Frontend->>Supabase: Subscribe to changes
+        Celery->>LLM: Generate completion
+        LLM-->>Celery: Return response
+        Celery->>Database: Update result
+        Database-->>Frontend: WebSocket update
+        Frontend->>UI: Display result
+    ```
+    
+    **Characteristics:**
+    - Asynchronous processing
+    - Scalable for multiple requests
+    - Resilient to failures
+    - No timeout limitations
+  </Tab>
+</Tabs>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Simulated Streaming">
+    Even though the backend returns complete responses, the frontend simulates a streaming effect by progressively revealing characters. This provides a more engaging user experience similar to ChatGPT.
+  </Accordion>
+  
+  <Accordion title="Real-time Updates">
+    The background mode leverages Supabase's real-time capabilities to push updates to the frontend immediately when the database is updated, eliminating the need for polling.
+  </Accordion>
+  
+  <Accordion title="Error Handling">
+    Both modes include comprehensive error handling:
+    - Network failures
+    - AI model errors
+    - Database connection issues
+    - WebSocket disconnections
+  </Accordion>
+  
+  <Accordion title="Scalability">
+    The background processing mode can handle multiple concurrent requests by distributing them across Celery workers, making it suitable for production deployments.
+  </Accordion>
+</AccordionGroup>
+
+## Implementation Details
+
+### Backend Endpoints
+
+<CardGroup cols={2}>
+  <Card title="/chat/direct" icon="message">
+    Handles synchronous chat completions with immediate response
+  </Card>
+  
+  <Card title="/chat/async" icon="clock">
+    Queues chat completion for background processing
+  </Card>
+  
+  <Card title="/chat/status/{task_id}" icon="chart-line">
+    Check the status of a background task
+  </Card>
+  
+  <Card title="/chat/history" icon="history">
+    Retrieve chat conversation history
+  </Card>
+</CardGroup>
+
+### Frontend Components
+
+- **ChatInterface**: Main chat UI component
+- **MessageList**: Displays conversation history
+- **InputBox**: User input with submit handling
+- **StreamingText**: Simulates text streaming effect
+- **ConnectionStatus**: WebSocket connection indicator
+
+## Configuration
+
+### Environment Variables
+
+<Tabs>
+  <Tab title="Backend">
+    ```env
+    # LLM Configuration
+    OPENAI_API_KEY=your_openai_key
+    ANTHROPIC_API_KEY=your_anthropic_key
+    
+    # Database
+    DATABASE_URL=postgresql://...
+    
+    # Redis
+    REDIS_URL=redis://localhost:6379
+    
+    # Supabase
+    SUPABASE_URL=http://localhost:8000
+    SUPABASE_ANON_KEY=your_anon_key
+    ```
+  </Tab>
+  
+  <Tab title="Frontend">
+    ```env
+    # API Configuration
+    VITE_API_URL=http://localhost:8080
+    
+    # Supabase
+    VITE_SUPABASE_URL=http://localhost:8000
+    VITE_SUPABASE_ANON_KEY=your_anon_key
+    
+    # Feature Flags
+    VITE_ENABLE_STREAMING=true
+    VITE_USE_BACKGROUND_MODE=false
+    ```
+  </Tab>
+</Tabs>
+
+## Testing the Implementation
+
+<Steps>
+  <Step title="Start the backend services">
+    ```bash
+    cd docker/
+    ./start.sh
+    ```
+  </Step>
+  
+  <Step title="Start the frontend development server">
+    ```bash
+    cd genai-launchpad-chat-example-frontend/
+    npm run dev
+    ```
+  </Step>
+  
+  <Step title="Open the chat interface">
+    Navigate to `http://localhost:5173` in your browser
+  </Step>
+  
+  <Step title="Test both modes">
+    Toggle between direct and background modes using the UI switch to experience both implementations
+  </Step>
+</Steps>
+
+## Customization Options
+
+<CardGroup cols={2}>
+  <Card title="Model Selection" icon="brain">
+    Easily switch between different LLM providers (OpenAI, Anthropic, etc.) by updating the workflow configuration
+  </Card>
+  
+  <Card title="Prompt Templates" icon="file-text">
+    Customize system prompts and conversation templates using the Prompt Management system
+  </Card>
+  
+  <Card title="UI Theming" icon="palette">
+    Modify the frontend styles and components to match your brand
+  </Card>
+  
+  <Card title="Response Processing" icon="gears">
+    Add custom post-processing steps to filter, format, or enhance AI responses
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Note>
+This example provides a foundation for building more complex chat applications. Consider extending it with:
+- User authentication and sessions
+- Conversation persistence
+- Multi-turn context management
+- File uploads and multimodal inputs
+- Voice input/output integration
+</Note>

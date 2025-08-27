@@ -1,0 +1,149 @@
+---
+title: "Create API Endpoint"
+description: "Build a FastAPI endpoint to receive events and trigger workflows"
+---
+
+Now we have everything needed to set up an endpoint for receiving events. This endpoint will validate incoming data, store it in the database, and trigger the workflow processing.
+
+## Endpoint Implementation
+
+The implementation below creates a simple POST endpoint without authentication (for demonstration purposes):
+
+```python
+from http import HTTPStatus
+
+import json
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from starlette.responses import Response
+
+from celery_worker.config import celery_app
+from database.event import Event
+from database.repository import GenericRepository
+from database.session import db_session
+from schemas.customer_care_schema import CustomerCareEventSchema
+from workflows.workflow_registry import WorkflowRegistry
+
+router = APIRouter()
+
+
+@router.post("/", dependencies=[])
+def handle_event(
+    data: CustomerCareEventSchema,
+    session: Session = Depends(db_session),
+) -> Response:
+    # Store event in database
+    repository = GenericRepository(
+        session=session,
+        model=Event,
+    )
+    raw_event = data.model_dump(mode="json")
+    event = Event(data=raw_event, workflow_type=get_workflow_type())
+    repository.create(obj=event)
+
+    # Queue processing task
+    task_id = celery_app.send_task(
+        "process_incoming_event",
+        args=[str(event.id)],
+    )
+
+    # Return acceptance response
+    return Response(
+        content=json.dumps({"message": f"process_incoming_event started `{task_id}` "}),
+        status_code=HTTPStatus.ACCEPTED,
+    )
+
+
+def get_workflow_type() -> str:
+    return WorkflowRegistry.CUSTOMER_CARE.name
+```
+
+## Key Actions Performed
+
+<Steps>
+  <Step title="Data Validation">
+    FastAPI automatically validates the incoming request body against the `CustomerCareEventSchema`. If validation fails, it returns a 422 error with details about what's wrong.
+  </Step>
+  
+  <Step title="Database Storage">
+    The event is stored in the database with:
+    - The raw event data (JSON format)
+    - The workflow type from the registry
+    - An auto-generated unique ID
+    - Timestamp information
+  </Step>
+  
+  <Step title="Task Queuing">
+    A Celery task is queued for asynchronous processing:
+    - Task name: `process_incoming_event`
+    - Task argument: The event ID
+    - Returns a task ID for tracking
+  </Step>
+  
+  <Step title="Response">
+    Returns HTTP 202 (Accepted) indicating the request has been accepted for processing but not yet completed.
+  </Step>
+</Steps>
+
+## Understanding the Components
+
+<CardGroup cols={2}>
+  <Card title="GenericRepository" icon="database">
+    Provides database operations (create, read, update, delete) for any model
+  </Card>
+  
+  <Card title="db_session" icon="link">
+    FastAPI dependency that provides a database session for the request
+  </Card>
+  
+  <Card title="celery_app" icon="gears">
+    The Celery application instance for queuing background tasks
+  </Card>
+  
+  <Card title="WorkflowRegistry" icon="list">
+    Enum containing all registered workflows in the system
+  </Card>
+</CardGroup>
+
+## Response Status Code
+
+<Info>
+The endpoint returns **HTTP 202 (Accepted)** rather than 200 (OK) because:
+- The workflow processing happens asynchronously
+- The client is informed that the request is queued
+- The actual processing will happen in the background
+</Info>
+
+## Security Considerations
+
+<Warning>
+This example endpoint has no authentication for simplicity. In production, you should:
+- Add authentication middleware
+- Implement rate limiting
+- Validate API keys or JWT tokens
+- Use HTTPS for secure communication
+</Warning>
+
+## Testing the Endpoint
+
+You can test this endpoint using curl or any HTTP client:
+
+```bash
+curl -X POST http://localhost:8080/your-endpoint-path \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from_email": "customer@example.com",
+    "to_email": "support@company.com",
+    "sender": "John Doe",
+    "subject": "Need help with my order",
+    "body": "I haven't received my package yet..."
+  }'
+```
+
+<Tip>
+The `ticket_id` and `timestamp` fields will be automatically generated if not provided, thanks to the schema's default factories.
+</Tip>
+
+## Next Steps
+
+With the endpoint in place, you're ready to implement the actual workflow logic that will process these events.

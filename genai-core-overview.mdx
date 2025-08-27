@@ -1,0 +1,64 @@
+---
+title: "Core Package Overview"
+description: "Learn about the core package that provides a flexible DAG-based workflow system for processing tasks through interconnected nodes."
+---
+
+# Core Package Overview
+
+<Info>
+The `core` package is the central component of the application, providing a flexible and extensible framework for defining and executing workflows. It implements a directed acyclic graph (DAG) based workflow system where tasks flow through a series of processing nodes, each performing specific operations on the task context.
+</Info>
+
+## Package Structure
+
+The `core` package consists of the following components:
+
+<CardGroup cols={2}>
+  <Card title="Commands" icon="terminal">
+    Command-line utilities for workflow management
+  </Card>
+  <Card title="Nodes" icon="sitemap">
+    Node implementations for workflow processing
+  </Card>
+  <Card title="Schema" icon="code">
+    Schema definitions for workflow configuration
+  </Card>
+  <Card title="Task Context" icon="database">
+    Task context definitions for state management
+  </Card>
+  <Card title="Validation" icon="shield-check">
+    Workflow validation utilities
+  </Card>
+  <Card title="Workflow" icon="workflow">
+    Workflow orchestration and execution
+  </Card>
+</CardGroup>
+
+```
+app/core/
+├── commands/            # Command-line utilities for workflow management
+├── nodes/               # Node implementations for workflow processing
+├── __init__.py          # Package initialization
+├── schema.py            # Schema definitions for workflow configuration
+├── task.py              # Task context definitions
+├── validate.py          # Workflow validation utilities
+└── workflow.py          # Workflow orchestration
+```
+
+## Key Features
+
+<Accordion title="Workflow Orchestration">
+  The core package provides powerful workflow orchestration capabilities that allow you to define complex processing pipelines with multiple interconnected nodes.
+</Accordion>
+
+<Accordion title="Task Context Management">
+  Centralized state management through the TaskContext system ensures data flows seamlessly between workflow nodes while maintaining state integrity.
+</Accordion>
+
+<Accordion title="Node-based Architecture">
+  Modular node-based design enables reusable processing components that can be easily combined to create sophisticated workflows.
+</Accordion>
+
+<Accordion title="Schema Validation">
+  Built-in validation ensures workflow schemas are properly structured and form valid directed acyclic graphs before execution.
+</Accordion>

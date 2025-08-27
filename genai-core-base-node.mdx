@@ -1,0 +1,204 @@
+---
+title: "Base Node"
+description: "Learn about the foundational Node class that all other node types inherit from, and how to implement custom processing logic."
+---
+
+# Base Node
+
+## Overview
+
+<Info>
+The `Node` class is the foundational class from which all other node types inherit. By inheriting from `Node`, each specialized node is required to implement the `process()` method. This method contains the core logic specific to that step in the workflow.
+</Info>
+
+Use the `process()` method to define how the node manipulates or handles data during execution. This design enforces consistency and extensibility across different node types.
+
+## Node Class
+
+The base `Node` class provides the essential structure for all workflow processing steps:
+
+```python
+class Node(ABC):
+    @property
+    def node_name(self) -> str:
+        return self.__class__.__name__
+
+    @abstractmethod
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        pass
+```
+
+<CardGroup cols={2}>
+  <Card title="Abstract Base Class" icon="cube">
+    Ensures consistent interface across all node implementations
+  </Card>
+  <Card title="Node Name Property" icon="tag">
+    Automatically uses the class name for identification
+  </Card>
+  <Card title="Process Method" icon="cog">
+    Abstract method that must be implemented by all subclasses
+  </Card>
+  <Card title="Async Support" icon="bolt">
+    Built-in support for asynchronous processing operations
+  </Card>
+</CardGroup>
+
+## Basic Implementation
+
+Here's a simple example of how to implement a custom node:
+
+```python
+class ValidateInputNode(Node):
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        # Your custom processing logic here
+        return task_context
+```
+
+<Tip>
+The `process` method should always return the `task_context` to maintain the flow of data through the workflow pipeline.
+</Tip>
+
+## Storing and Accessing Node Results
+
+<Tabs>
+  <Tab title="Why Store Results?">
+    It's often necessary to persist the output of a node so that subsequent nodes in the workflow can access it. This enables complex workflows where later processing steps depend on the results of earlier ones.
+  </Tab>
+  
+  <Tab title="Best Practices">
+    The recommended approach is to update the `task_context` with each node's results, using the node name as the key. This ensures consistency and makes it easy to locate specific node outputs.
+  </Tab>
+</Tabs>
+
+### Storing Node Results
+
+Use the `update_node` method to store results in the task context:
+
+```python
+class ValidateInputNode(Node):
+    def validate_input(self, event: ExampleEvent):
+        # Your validation logic here
+        return {"is_valid": True, "validation_score": 0.95}
+        
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        event: ExampleEvent = task_context.event
+        
+        result = self.validate_input(event)
+        
+        # Store the result using the node name as the key
+        task_context.update_node(node_name=self.node_name, result=result)
+        
+        return task_context
+```
+
+<Info>
+This approach ensures the result is stored in a dictionary within `task_context`, keyed by the node's class name. Any subsequent node in the workflow can then access these results as needed.
+</Info>
+
+### Accessing Node Results
+
+Retrieve results from previous nodes using the node name as the key:
+
+```python
+class CalculateDifferenceNode(Node):
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        # Access results from the ValidateInputNode
+        validation_result = task_context.nodes[ValidateInputNode.__name__]["result"]
+        
+        # Use the validation result in your processing
+        if validation_result["is_valid"]:
+            # Process valid data
+            pass
+        
+        return task_context
+```
+
+## Advanced Patterns
+
+<AccordionGroup>
+  <Accordion title="Error Handling">
+    ```python
+    class RobustProcessingNode(Node):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            try:
+                # Your processing logic
+                result = self.perform_complex_operation(task_context.event)
+                task_context.update_node(
+                    node_name=self.node_name, 
+                    result=result, 
+                    status="success"
+                )
+            except Exception as e:
+                task_context.update_node(
+                    node_name=self.node_name, 
+                    error=str(e), 
+                    status="error"
+                )
+            
+            return task_context
+    ```
+  </Accordion>
+  
+  <Accordion title="Conditional Processing">
+    ```python
+    class ConditionalProcessingNode(Node):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            event: MyEventSchema = task_context.event
+            
+            # Conditional logic based on event properties
+            if event.priority == "high":
+                result = self.high_priority_processing(event)
+            else:
+                result = self.standard_processing(event)
+            
+            task_context.update_node(node_name=self.node_name, result=result)
+            return task_context
+    ```
+  </Accordion>
+  
+  <Accordion title="Data Transformation">
+    ```python
+    class DataTransformationNode(Node):
+        async def process(self, task_context: TaskContext) -> TaskContext:
+            # Transform data from previous nodes
+            raw_data = task_context.nodes["DataCollectionNode"]["result"]
+            
+            transformed_data = {
+                "processed_at": datetime.utcnow().isoformat(),
+                "data": self.transform_data(raw_data),
+                "metadata": self.extract_metadata(raw_data)
+            }
+            
+            task_context.update_node(
+                node_name=self.node_name, 
+                transformed_data=transformed_data
+            )
+            
+            return task_context
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Key Benefits
+
+<Steps>
+  <Step title="Consistency">
+    All nodes follow the same interface pattern, making the codebase predictable and maintainable
+  </Step>
+  
+  <Step title="Flexibility">
+    The abstract base class allows for unlimited customization while maintaining structure
+  </Step>
+  
+  <Step title="Composability">
+    Nodes can be easily combined and reordered to create different workflow configurations
+  </Step>
+  
+  <Step title="Testability">
+    Each node can be tested independently by providing mock task contexts
+  </Step>
+</Steps>
+
+<Warning>
+Remember to always implement the `process` method when creating a new node. The method must be `async` and should return the modified `task_context`.
+</Warning>

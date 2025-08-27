@@ -1,0 +1,99 @@
+---
+title: "Workflow Definition"
+description: "Create the workflow structure and register it in the system"
+---
+
+Now we'll define an empty Workflow schema that serves as the container for your workflow logic. This is where you'll specify which event schema to use and how nodes connect together.
+
+## Creating the Workflow Class
+
+Create a new file under `app/workflows` directory. For the quickstart, we've created `app/workflows/customer_care_workflow.py`:
+
+```python
+from core.schema import WorkflowSchema
+from core.workflow import Workflow
+from schemas.customer_care_schema import CustomerCareEventSchema
+
+
+class CustomerCareWorkflow(Workflow):
+    workflow_schema = WorkflowSchema(
+        description="",
+        event_schema=CustomerCareEventSchema,
+        start=,
+        nodes=[],
+    )
+```
+
+<Info>
+At this point, the workflow is just a skeleton. We'll add the actual node implementations and connections in the next steps.
+</Info>
+
+## Workflow Schema Components
+
+<CardGroup cols={2}>
+  <Card title="description" icon="text">
+    A human-readable description of what the workflow does
+  </Card>
+  
+  <Card title="event_schema" icon="database">
+    The Pydantic schema that defines the expected input data structure
+  </Card>
+  
+  <Card title="start" icon="play">
+    The name of the first node to execute in the workflow
+  </Card>
+  
+  <Card title="nodes" icon="diagram-project">
+    List of all nodes that will be part of this workflow
+  </Card>
+</CardGroup>
+
+## Registering the Workflow
+
+To make your workflow available to the system, you need to register it in the `WorkflowRegistry`. 
+
+Add a new entry to `app/workflows/workflow_registry.py`:
+
+```python
+from enum import Enum
+
+from workflows.customer_care_workflow import CustomerCareWorkflow
+
+
+class WorkflowRegistry(Enum):
+    CUSTOMER_CARE = CustomerCareWorkflow
+```
+
+<Warning>
+The workflow registry enum name (e.g., `CUSTOMER_CARE`) will be used to reference this workflow throughout the application. Choose a descriptive name that clearly indicates the workflow's purpose.
+</Warning>
+
+## Why Use a Registry?
+
+The `WorkflowRegistry` enum provides several benefits:
+
+<AccordionGroup>
+  <Accordion title="Centralized Management">
+    All workflows are registered in one place, making it easy to see what workflows are available in your system.
+  </Accordion>
+  
+  <Accordion title="Type Safety">
+    Using an enum ensures you can only reference workflows that actually exist, preventing typos and runtime errors.
+  </Accordion>
+  
+  <Accordion title="Easy Discovery">
+    IDEs can autocomplete workflow names, making development faster and reducing errors.
+  </Accordion>
+  
+  <Accordion title="Dynamic Loading">
+    The system can dynamically load and execute workflows based on the registry entry.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Keep your workflow names consistent with their purpose. For example, use `CUSTOMER_CARE` for customer support workflows, `ORDER_PROCESSING` for e-commerce workflows, etc.
+</Tip>
+
+## Next Steps
+
+With the workflow defined and registered, you're ready to create the API endpoint that will trigger this workflow.

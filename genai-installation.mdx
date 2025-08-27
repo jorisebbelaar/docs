@@ -1,0 +1,246 @@
+---
+title: "Installation Guide"
+description: "Step-by-step installation for GenAI Launchpad"
+---
+
+<Info>
+Before you begin, ensure you have completed the [requirements](/genai-requirements) setup.
+</Info>
+
+<Tabs>
+  <Tab title="macOS & Linux">
+    <Steps>
+      <Step title="Clone the repository">
+        Open your terminal and navigate to your desired project directory:
+        
+        ```bash
+        cd desired/project/path
+        ```
+        
+        Clone the GenAI Launchpad repository:
+        
+        ```bash
+        git clone git@github.com:datalumina/genai-launchpad.git
+        ```
+      </Step>
+      
+      <Step title="Configure environment variables">
+        Navigate to the project directory:
+        
+        ```bash
+        cd genai-launchpad
+        ```
+        
+        Copy the example environment files:
+        
+        ```bash
+        cp app/.env.example app/.env && cp docker/.env.example docker/.env
+        ```
+        
+        <Warning>
+        Remember to update the `.env` files with your actual API keys and configuration values before running the application.
+        </Warning>
+      </Step>
+      
+      <Step title="Start Docker containers">
+        Navigate to the Docker directory and start the containers:
+        
+        ```bash
+        cd docker && ./start.sh
+        ```
+        
+        This command will:
+        - Build all Docker containers
+        - Start all services via Docker Compose
+        
+        Verify the containers are running:
+        
+        ```bash
+        docker ps
+        ```
+      </Step>
+      
+      <Step title="Set up Python environment">
+        Return to the project root and create a virtual environment:
+        
+        ```bash
+        cd ../ && uv venv --python 3.12.8
+        ```
+        
+        Activate the virtual environment:
+        
+        ```bash
+        source .venv/bin/activate
+        ```
+        
+        Install dependencies:
+        
+        ```bash
+        uv sync
+        ```
+      </Step>
+      
+      <Step title="Run database migrations">
+        Navigate to the app directory:
+        
+        ```bash
+        cd ../app
+        ```
+        
+        Create a new migration (you'll be prompted for a description):
+        
+        ```bash
+        ./makemigration.sh
+        ```
+        
+        <Tip>
+        When prompted, enter a descriptive message like "init db" for your first migration.
+        </Tip>
+        
+        Apply the migration:
+        
+        ```bash
+        ./migrate.sh
+        ```
+      </Step>
+      
+      <Step title="Access Supabase Studio">
+        Open your browser and navigate to [http://localhost:8000](http://localhost:8000)
+        
+        Use these credentials:
+        - **Username**: `supabase`
+        - **Password**: `supabase`
+        
+        Navigate to the **Table Editor** tab to view your database tables.
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Windows">
+    <Info>
+    Windows users should use either Git Bash or Ubuntu WSL (WSL preferred) for the best experience.
+    </Info>
+    
+    <Steps>
+      <Step title="Clone the repository">
+        Open Git Bash or Ubuntu WSL and navigate to your desired project directory:
+        
+        ```bash
+        cd desired/project/path
+        ```
+        
+        Clone the GenAI Launchpad repository:
+        
+        ```bash
+        git clone git@github.com:datalumina/genai-launchpad.git
+        ```
+      </Step>
+      
+      <Step title="Configure environment variables">
+        Navigate to the project directory:
+        
+        ```bash
+        cd genai-launchpad
+        ```
+        
+        Copy the example environment files:
+        
+        ```bash
+        cp app/.env.example app/.env && cp docker/.env.example docker/.env
+        ```
+        
+        <Warning>
+        Remember to update the `.env` files with your actual API keys and configuration values before running the application.
+        </Warning>
+      </Step>
+      
+      <Step title="Start Docker containers">
+        Navigate to the Docker directory and start the containers:
+        
+        ```bash
+        cd docker && ./start.sh
+        ```
+        
+        This command will:
+        - Build all Docker containers
+        - Start all services via Docker Compose
+        
+        Verify the containers are running:
+        
+        ```bash
+        docker ps
+        ```
+      </Step>
+      
+      <Step title="Set up Python environment">
+        Return to the project root and create a virtual environment:
+        
+        ```bash
+        cd ../ && uv venv --python 3.12.8
+        ```
+        
+        Activate the virtual environment:
+        
+        ```bash
+        .venv\Scripts\activate
+        ```
+        
+        <Note>
+        Note the backslash in the Windows activation command instead of forward slash.
+        </Note>
+        
+        Install dependencies:
+        
+        ```bash
+        uv sync
+        ```
+      </Step>
+      
+      <Step title="Run database migrations">
+        Navigate to the app directory:
+        
+        ```bash
+        cd ../app
+        ```
+        
+        Create a new migration (you'll be prompted for a description):
+        
+        ```bash
+        ./makemigration.sh
+        ```
+        
+        <Tip>
+        When prompted, enter a descriptive message like "init db" for your first migration.
+        </Tip>
+        
+        Apply the migration:
+        
+        ```bash
+        ./migrate.sh
+        ```
+      </Step>
+      
+      <Step title="Access Supabase Studio">
+        Open your browser and navigate to [http://localhost:8000](http://localhost:8000)
+        
+        Use these credentials:
+        - **Username**: `supabase`
+        - **Password**: `supabase`
+        
+        Navigate to the **Table Editor** tab to view your database tables.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/genai-quickstart-overview">
+    Learn how to build your first workflow
+  </Card>
+  
+  <Card title="Core Components" icon="puzzle-piece" href="/genai-schemas">
+    Understand the architecture and components
+  </Card>
+</CardGroup>

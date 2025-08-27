@@ -1,0 +1,373 @@
+---
+title: "Workflow Implementation"
+description: "Build the complete customer care workflow with AI-powered nodes"
+---
+
+Now we'll implement the different steps in our workflow. Each step is referred to as a **node**. Our customer care workflow will demonstrate various node types and patterns available in GenAI Launchpad.
+
+## Workflow Architecture
+
+<Steps>
+  <Step title="Analyze ticket contents">
+    Run three parallel analyses:
+    - Determine ticket intent
+    - Check for spam
+    - Validate information sufficiency
+  </Step>
+  
+  <Step title="Route based on analysis">
+    Make intelligent routing decisions:
+    - Close spam tickets
+    - Escalate urgent issues
+    - Process specific requests (invoices, refunds)
+    - Generate responses for general queries
+  </Step>
+  
+  <Step title="Take action">
+    Execute the appropriate action based on routing decision
+  </Step>
+</Steps>
+
+<Info>
+All nodes are located in the folder: `app/workflows/customer_care_workflow_nodes`
+</Info>
+
+## Step 1: Concurrent Analysis
+
+### AnalyzeTicketNode
+
+Since our three analysis operations are independent, we use `ConcurrentNode` to run them in parallel:
+
+```python
+class AnalyzeTicketNode(ConcurrentNode):
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        await self.execute_nodes_concurrently(task_context)
+        return task_context
+```
+
+<Tip>
+Using concurrent processing can significantly reduce the total processing time when you have multiple independent AI calls.
+</Tip>
+
+### DetermineTicketIntentNode
+
+This `AgentNode` uses AI to classify the ticket intent:
+
+```python
+class CustomerIntent(str, Enum):
+    GENERAL_QUESTION = "general/question"
+    PRODUCT_QUESTION = "product/question"
+    BILLING_INVOICE = "billing/invoice"
+    REFUND_REQUEST = "refund/request"
+
+    @property
+    def escalate(self) -> bool:
+        return self in {self.REFUND_REQUEST}
+
+
+class DetermineTicketIntentNode(AgentNode):
+    class OutputType(AgentNode.OutputType):
+        reasoning: str = Field(
+            description="Explain your reasoning for the intent classification"
+        )
+        intent: CustomerIntent
+        confidence: float = Field(
+            ge=0, le=1, description="Confidence score for the intent"
+        )
+        escalate: bool = Field(
+            description="Flag to indicate if the ticket needs escalation"
+        )
+
+    class DepsType(AgentNode.DepsType):
+        from_email: str = Field(..., description="Email address of the sender")
+        sender: str = Field(..., description="Name or identifier of the sender")
+        subject: str = Field(..., description="Subject of the ticket")
+        body: str = Field(..., description="The body of the ticket")
+
+    def get_agent_config(self) -> AgentConfig:
+        return AgentConfig(
+            system_prompt=PromptManager().get_prompt("ticket_analysis"),
+            output_type=self.OutputType,
+            deps_type=self.DepsType,
+            model_provider=ModelProvider.ANTHROPIC,
+            model_name="claude-3-7-sonnet-latest",
+        )
+
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        event: CustomerCareEventSchema = task_context.event
+        deps = self.DepsType(
+            from_email=event.from_email,
+            sender=event.sender,
+            subject=event.subject,
+            body=event.body,
+        )
+
+        @self.agent.system_prompt
+        def add_ticket_context(
+            ctx: RunContext[DetermineTicketIntentNode.DepsType],
+        ) -> str:
+            return deps.model_dump_json(indent=2)
+
+        result = await self.agent.run(
+            user_prompt=event.model_dump_json(indent=2),
+        )
+
+        task_context.update_node(node_name=self.node_name, result=result)
+        return task_context
+```
+
+### FilterSpamNode
+
+Detects spam messages using AI:
+
+```python
+class FilterSpamNode(AgentNode):
+    class OutputType(AgentNode.OutputType):
+        reasoning: str = Field(
+            description="Explain your reasoning for spam detection"
+        )
+        confidence: float = Field(
+            ge=0, le=1,
+            description="Confidence score for the classification"
+        )
+        is_human: bool = Field(
+            description="True if human-written, False if spam"
+        )
+
+    def get_agent_config(self) -> AgentConfig:
+        return AgentConfig(
+            system_prompt="You are a helpful assistant that filters messages...",
+            output_type=self.OutputType,
+            deps_type=None,
+            model_provider=ModelProvider.ANTHROPIC,
+            model_name="claude-3-7-sonnet-latest",
+        )
+
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        event: CustomerCareEventSchema = task_context.event
+        result = await self.agent.run(
+            user_prompt=event.model_dump_json(),
+        )
+        task_context.update_node(node_name=self.node_name, result=result)
+        return task_context
+```
+
+### ValidateTicketNode
+
+Verifies if the ticket contains actionable information:
+
+```python
+class ValidateTicketNode(AgentNode):
+    class OutputType(AgentNode.OutputType):
+        reasoning: str = Field(
+            description="Reasoning for actionability determination"
+        )
+        confidence: float = Field(
+            ge=0, le=1,
+            description="Confidence score"
+        )
+        is_actionable: bool = Field(
+            description="True if ticket is actionable"
+        )
+
+    def get_agent_config(self) -> AgentConfig:
+        return AgentConfig(
+            system_prompt="Review tickets for actionable information...",
+            output_type=self.OutputType,
+            deps_type=None,
+            model_provider=ModelProvider.ANTHROPIC,
+            model_name="claude-3-7-sonnet-latest",
+        )
+
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        event: CustomerCareEventSchema = task_context.event
+        result = await self.agent.run(
+            user_prompt=event.model_dump_json(),
+        )
+        task_context.update_node(node_name=self.node_name, result=result)
+        return task_context
+```
+
+## Step 2: Intelligent Routing
+
+### TicketRouterNode
+
+The router examines analysis results and determines the next action:
+
+```python
+class TicketRouterNode(BaseRouter):
+    def __init__(self):
+        self.routes = [
+            CloseTicketRouter(),
+            EscalationRouter(),
+            InvoiceRouter(),
+        ]
+        self.fallback = GenerateResponseNode()
+```
+
+<CardGroup cols={3}>
+  <Card title="CloseTicketRouter" icon="xmark">
+    Closes spam tickets automatically when confidence > 0.8
+  </Card>
+  
+  <Card title="EscalationRouter" icon="arrow-up">
+    Escalates urgent or sensitive issues to human agents
+  </Card>
+  
+  <Card title="InvoiceRouter" icon="file-invoice">
+    Routes billing-related requests to invoice processing
+  </Card>
+</CardGroup>
+
+### Router Implementation
+
+```python
+class CloseTicketRouter(RouterNode):
+    def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+        output = task_context.nodes["FilterSpamNode"]["result"].output
+        if not output.is_human and output.confidence > 0.8:
+            return CloseTicketNode()
+        return None
+
+class EscalationRouter(RouterNode):
+    def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+        analysis = task_context.nodes["DetermineTicketIntentNode"]["result"].output
+        if analysis.intent.escalate or analysis.escalate:
+            return EscalateTicketNode()
+        return None
+
+class InvoiceRouter(RouterNode):
+    def determine_next_node(self, task_context: TaskContext) -> Optional[Node]:
+        analysis = task_context.nodes["DetermineTicketIntentNode"]["result"].output
+        if analysis.intent == CustomerIntent.BILLING_INVOICE:
+            return ProcessInvoiceNode()
+        return None
+```
+
+## Step 3: Action Nodes
+
+### GenerateResponseNode
+
+Creates AI-powered responses for customer queries:
+
+```python
+class GenerateResponseNode(AgentNode):
+    class OutputType(AgentNode.OutputType):
+        reasoning: str = Field(description="The reasoning for the response")
+        response: str = Field(description="The response to the ticket")
+        confidence: float = Field(
+            ge=0, le=1, 
+            description="Confidence score for response quality"
+        )
+
+    def get_agent_config(self) -> AgentConfig:
+        return AgentConfig(
+            system_prompt=PromptManager().get_prompt("customer_ticket_response"),
+            output_type=self.OutputType,
+            deps_type=None,
+            model_provider=ModelProvider.AZURE_OPENAI,
+            model_name="gpt-4o",
+        )
+
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        event: CustomerCareEventSchema = task_context.event
+        result = await self.agent.run(
+            user_prompt=event.model_dump_json(),
+        )
+        task_context.update_node(node_name=self.node_name, result=result)
+        return task_context
+```
+
+### SendReplyNode
+
+Delivers the generated response:
+
+```python
+class SendReplyNode(Node):
+    async def process(self, task_context: TaskContext) -> TaskContext:
+        logging.info("Sending reply:")
+        output = task_context.nodes["GenerateResponseNode"]["result"].output
+        logging.info(output.response)
+        return task_context
+```
+
+## Complete Workflow Schema
+
+<Accordion title="View Complete WorkflowSchema">
+```python
+class CustomerCareWorkflow(Workflow):
+    workflow_schema = WorkflowSchema(
+        description="Customer care ticket processing workflow",
+        event_schema=CustomerCareEventSchema,
+        start=AnalyzeTicketNode,
+        nodes=[
+            NodeConfig(
+                node=AnalyzeTicketNode,
+                connections=[TicketRouterNode],
+                description="Analyze ticket in parallel",
+                parallel_nodes=[
+                    DetermineTicketIntentNode,
+                    FilterSpamNode,
+                    ValidateTicketNode,
+                ],
+            ),
+            NodeConfig(
+                node=TicketRouterNode,
+                connections=[
+                    CloseTicketNode,
+                    EscalateTicketNode,
+                    GenerateResponseNode,
+                    ProcessInvoiceNode,
+                ],
+                description="Route based on analysis",
+                is_router=True,
+            ),
+            NodeConfig(
+                node=GenerateResponseNode,
+                connections=[SendReplyNode],
+                description="Generate AI response",
+            ),
+        ],
+    )
+```
+</Accordion>
+
+## Key Concepts Demonstrated
+
+<CardGroup cols={2}>
+  <Card title="Node Types" icon="diagram-project">
+    - **BaseNode**: Simple processing logic
+    - **AgentNode**: AI-powered processing
+    - **ConcurrentNode**: Parallel execution
+    - **RouterNode**: Conditional branching
+  </Card>
+  
+  <Card title="AI Integration" icon="robot">
+    - Multiple model providers (Anthropic, Azure OpenAI)
+    - Structured outputs with Pydantic
+    - Dynamic prompt management
+    - Confidence scoring
+  </Card>
+  
+  <Card title="Workflow Patterns" icon="route">
+    - Parallel processing for performance
+    - Conditional routing based on results
+    - Chained operations with context passing
+    - Fallback handling for edge cases
+  </Card>
+  
+  <Card title="Best Practices" icon="check-circle">
+    - Type-safe outputs with Pydantic models
+    - Clear separation of concerns
+    - Reusable node components
+    - Comprehensive logging
+  </Card>
+</CardGroup>
+
+<Warning>
+Remember to configure your AI model API keys in the `.env` file before running this workflow.
+</Warning>
+
+## Next Steps
+
+Now that you've implemented the workflow, let's test it locally to ensure everything works correctly.

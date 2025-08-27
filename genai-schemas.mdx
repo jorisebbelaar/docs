@@ -1,0 +1,32 @@
+---
+title: "Schemas"
+description: "Utilize Pydantic models for systematic data validation in GenAI workflows"
+---
+
+# Schemas
+
+<Info>
+In this project, we utilize **Pydantic models** to validate event data systematically. Each workflow in the Launchpad must define its own Pydantic schema.
+</Info>
+
+<Card title="Data Validation Benefits" icon="shield-check">
+This approach ensures that incoming data is validated at the **endpoint level** and supports validation within the workflow definition.
+</Card>
+
+## Key Advantages
+
+<CardGroup cols={3}>
+  <Card title="Cleaner Code" icon="code">
+    Structured validation reduces complexity
+  </Card>
+  <Card title="Data Consistency" icon="database">
+    Prevents data inconsistencies across workflows
+  </Card>
+  <Card title="Improved Robustness" icon="shield">
+    Enhanced reliability of workflows
+  </Card>
+</CardGroup>
+
+<Tip>
+By adhering to this Pydantic schema approach, we achieve cleaner code, reduce the likelihood of data inconsistencies, and improve the robustness of our workflows.
+</Tip>

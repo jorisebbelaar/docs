@@ -11,6 +11,65 @@
   "navigation": {
     "tabs": [
       {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "genai-introduction"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "genai-requirements",
+              "genai-installation"
+            ]
+          },
+          {
+            "group": "Quickstart Guide",
+            "pages": [
+              "genai-quickstart-overview",
+              "genai-quickstart-schema",
+              "genai-quickstart-workflow-definition",
+              "genai-quickstart-endpoint",
+              "genai-quickstart-workflow-implementation",
+              "genai-quickstart-testing",
+              "genai-quickstart-e2e-testing"
+            ]
+          },
+          {
+            "group": "Core Components",
+            "pages": [
+              "genai-schemas",
+              "genai-fast-api",
+              "genai-celery-workers",
+              "genai-supabase",
+              "genai-prompt-management"
+            ]
+          },
+          {
+            "group": "Core Architecture",
+            "pages": [
+              "genai-core-overview",
+              "genai-core-workflow",
+              "genai-core-task-context",
+              "genai-core-nodes",
+              "genai-core-base-node",
+              "genai-core-agent-node",
+              "genai-core-concurrent-node",
+              "genai-core-router-node"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "genai-chat-example"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Guides",
         "groups": [
           {

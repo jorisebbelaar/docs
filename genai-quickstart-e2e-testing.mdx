@@ -1,0 +1,239 @@
+---
+title: "End-to-End Testing"
+description: "Test the complete workflow with API, database, and background processing"
+---
+
+After local testing, you'll want to test the entire system end-to-end, including the API endpoint, database persistence, and asynchronous processing. This ensures all components work together correctly.
+
+## Test Script Overview
+
+GenAI Launchpad includes `requests/send_event.py` for end-to-end testing. This script:
+
+<Steps>
+  <Step title="Loads test data">
+    Reads JSON payloads from the `requests/events` directory
+  </Step>
+  
+  <Step title="Sends HTTP request">
+    Posts the data to your API endpoint
+  </Step>
+  
+  <Step title="Validates response">
+    Confirms the API returns HTTP 202 (Accepted)
+  </Step>
+  
+  <Step title="Triggers background processing">
+    Celery workers process the workflow asynchronously
+  </Step>
+</Steps>
+
+## Running the Test
+
+Here's the test script implementation:
+
+```python
+def load_event(event_file: str):
+    with open(EVENTS_DIR / event_file, "r") as f:
+        return json.load(f)
+
+
+def send_event(event_file: str):
+    payload = load_event(event_file)
+    response = requests.post(BASE_URL, json=payload)
+
+    print(f"Testing {event_file}:")
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {response.text}")
+
+    assert response.status_code == 202
+
+
+if __name__ == "__main__":
+    send_event(event_file="invoice.json")
+```
+
+<Info>
+The script expects an HTTP 202 response, indicating the request was accepted for asynchronous processing.
+</Info>
+
+## Prerequisites
+
+Before running end-to-end tests, ensure:
+
+<CardGroup cols={2}>
+  <Card title="Docker Running" icon="docker">
+    All containers must be up and running via `docker ps`
+  </Card>
+  
+  <Card title="API Available" icon="server">
+    The FastAPI service should be accessible at your configured port
+  </Card>
+  
+  <Card title="Celery Workers" icon="gears">
+    Background workers must be running to process tasks
+  </Card>
+  
+  <Card title="Database Ready" icon="database">
+    PostgreSQL/Supabase must be initialized with migrations applied
+  </Card>
+</CardGroup>
+
+## Monitoring Results in Supabase Studio
+
+To view the workflow execution results:
+
+<Steps>
+  <Step title="Access Supabase Studio">
+    Navigate to [http://localhost:8000](http://localhost:8000) in your browser
+  </Step>
+  
+  <Step title="Authenticate">
+    Enter the credentials:
+    - **Username**: `supabase`
+    - **Password**: `supabase`
+  </Step>
+  
+  <Step title="View Events Table">
+    1. Click on the **Table Editor** tab
+    2. Select the `events` table
+    3. View your processed events and their status
+  </Step>
+</Steps>
+
+## Understanding the Events Table
+
+The `events` table contains:
+
+<AccordionGroup>
+  <Accordion title="Event Data">
+    - `id`: Unique event identifier
+    - `data`: The original JSON payload
+    - `workflow_type`: Which workflow processed this event
+    - `created_at`: When the event was received
+  </Accordion>
+  
+  <Accordion title="Processing Status">
+    - `status`: Current state (pending, processing, completed, failed)
+    - `result`: Workflow execution results
+    - `error`: Any error messages if processing failed
+  </Accordion>
+  
+  <Accordion title="Metadata">
+    - `task_id`: Celery task identifier
+    - `updated_at`: Last modification timestamp
+    - `processing_time`: Duration of workflow execution
+  </Accordion>
+</AccordionGroup>
+
+## Testing Different Scenarios
+
+Run multiple test scenarios to ensure robustness:
+
+```python
+# Test multiple event types
+test_files = [
+    "product.json",      # Product inquiry
+    "invoice.json",      # Billing request
+    "spam.json",         # Spam detection
+    "refund.json",       # Refund request
+    "incomplete.json"    # Missing information
+]
+
+for file in test_files:
+    send_event(event_file=file)
+    time.sleep(2)  # Wait between requests
+```
+
+## Troubleshooting
+
+<Warning>
+If events aren't processing, check:
+1. Docker containers are running: `docker ps`
+2. Celery workers are healthy: Check Docker logs
+3. API is accessible: Try a manual curl request
+4. Database migrations: Ensure they're applied
+</Warning>
+
+## Viewing Logs
+
+Monitor different components:
+
+<Tabs>
+  <Tab title="API Logs">
+    ```bash
+    docker logs genai-launchpad-api-1 -f
+    ```
+  </Tab>
+  
+  <Tab title="Celery Worker Logs">
+    ```bash
+    docker logs genai-launchpad-celery-worker-1 -f
+    ```
+  </Tab>
+  
+  <Tab title="Database Logs">
+    ```bash
+    docker logs genai-launchpad-postgres-1 -f
+    ```
+  </Tab>
+</Tabs>
+
+## Performance Monitoring
+
+<CardGroup cols={2}>
+  <Card title="Response Time" icon="clock">
+    Monitor API response times to ensure they stay under acceptable thresholds
+  </Card>
+  
+  <Card title="Queue Length" icon="list">
+    Check Celery queue depth to ensure tasks aren't backing up
+  </Card>
+  
+  <Card title="Error Rate" icon="exclamation-triangle">
+    Track failed events in the database to identify issues
+  </Card>
+  
+  <Card title="Throughput" icon="chart-line">
+    Measure events processed per minute during load testing
+  </Card>
+</CardGroup>
+
+## Load Testing
+
+For production readiness, test with multiple concurrent requests:
+
+```python
+import concurrent.futures
+import time
+
+def send_concurrent_events(num_events=10):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for i in range(num_events):
+            future = executor.submit(send_event, "product.json")
+            futures.append(future)
+            time.sleep(0.1)  # Slight delay between submissions
+        
+        # Wait for all to complete
+        concurrent.futures.wait(futures)
+        print(f"Sent {num_events} events successfully")
+
+# Run load test
+send_concurrent_events(num_events=50)
+```
+
+<Tip>
+Start with a small number of concurrent events and gradually increase to find your system's limits.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Components" icon="puzzle-piece" href="/genai-schemas">
+    Deep dive into the architecture components
+  </Card>
+  
+  <Card title="Production Deployment" icon="rocket" href="/genai-deployment">
+    Learn how to deploy to production environments
+  </Card>
+</CardGroup>

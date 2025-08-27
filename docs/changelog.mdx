@@ -1,0 +1,163 @@
+---
+title: "Version 1.0.0 - Stable Release"
+description: "GenAI Launchpad reaches stable release with production-ready features"
+---
+
+<Note>
+This is the first stable release of GenAI Launchpad, marking our production-ready milestone.
+</Note>
+
+## Release Date
+**January 2025**
+
+## What's New in v1.0.0
+
+<CardGroup cols={2}>
+  <Card title="Production Ready" icon="rocket">
+    Complete event-driven architecture with FastAPI, Celery, and Supabase integration
+  </Card>
+  
+  <Card title="AI Workflow System" icon="diagram-project">
+    Flexible node-based workflow system with concurrent processing and intelligent routing
+  </Card>
+  
+  <Card title="Multi-Provider Support" icon="brain">
+    Integrated support for OpenAI, Anthropic, Google Gemini, and AWS Bedrock models
+  </Card>
+  
+  <Card title="Real-time Capabilities" icon="bolt">
+    WebSocket support through Supabase for real-time updates and notifications
+  </Card>
+</CardGroup>
+
+## Core Features
+
+### Workflow Architecture
+<AccordionGroup>
+  <Accordion title="Node Types">
+    - **BaseNode**: Simple processing tasks
+    - **AgentNode**: AI-powered operations with PydanticAI
+    - **ConcurrentNode**: Parallel execution of multiple nodes
+    - **RouterNode**: Conditional branching based on results
+  </Accordion>
+  
+  <Accordion title="Event Processing">
+    - Automatic event persistence in PostgreSQL
+    - Asynchronous processing with Celery workers
+    - Configurable callbacks for external notifications
+    - Complete audit trail for all events
+  </Accordion>
+  
+  <Accordion title="AI Integration">
+    - PydanticAI for structured LLM outputs
+    - Prompt management and versioning system
+    - Support for streaming and batch completions
+    - Model-agnostic design for provider flexibility
+  </Accordion>
+</AccordionGroup>
+
+## Infrastructure Components
+
+<Tabs>
+  <Tab title="Backend">
+    - **FastAPI** for REST API endpoints
+    - **SQLAlchemy** for database ORM
+    - **Alembic** for database migrations
+    - **Celery** for background task processing
+    - **Redis** for caching and message queue
+  </Tab>
+  
+  <Tab title="Database">
+    - **PostgreSQL** for persistent storage
+    - **Supabase** for authentication and real-time
+    - **pgvector** extension support for embeddings
+    - Automatic migration management
+  </Tab>
+  
+  <Tab title="DevOps">
+    - **Docker** containerization
+    - **Caddy** reverse proxy with automatic HTTPS
+    - Environment-based configuration
+    - Health check endpoints
+  </Tab>
+</Tabs>
+
+## Example Implementation
+
+The release includes a complete customer care workflow example demonstrating:
+
+<Steps>
+  <Step title="Event Reception">
+    Receive customer support tickets through API endpoints
+  </Step>
+  
+  <Step title="Intelligent Analysis">
+    Concurrent AI analysis for intent classification, spam detection, and validation
+  </Step>
+  
+  <Step title="Smart Routing">
+    Route tickets based on analysis results to appropriate handlers
+  </Step>
+  
+  <Step title="Response Generation">
+    Generate contextual responses using AI models
+  </Step>
+</Steps>
+
+## Getting Started
+
+<Info>
+Follow our [quickstart guide](/v1.0.0/genai-quickstart-overview) to build your first AI workflow in minutes.
+</Info>
+
+## System Requirements
+
+- Python 3.12+
+- Docker and Docker Compose
+- 8GB RAM minimum (16GB recommended)
+- Node.js v19+ (for Mintlify documentation)
+
+## Breaking Changes from Beta
+
+<Warning>
+If upgrading from beta versions (v0.9.x), note these breaking changes:
+- Workflow schema structure has been updated
+- AgentNode now requires async/await patterns
+- Database schema changes require fresh migration
+</Warning>
+
+## Migration Guide
+
+For users upgrading from v0.9.x:
+
+1. Back up your database
+2. Update workflow definitions to new schema format
+3. Convert synchronous AgentNode implementations to async
+4. Run new migrations with `./migrate.sh`
+5. Update environment variables for new configuration
+
+## Known Limitations
+
+- MCP server integration is experimental
+- Streaming responses require WebSocket support
+- Maximum concurrent workers limited by Redis memory
+
+## Next Release Preview
+
+Version 1.1.0 (planned Q2 2025) will include:
+- Enhanced streaming capabilities
+- Built-in RAG support
+- Workflow visualization dashboard
+- Advanced monitoring and metrics
+
+## Support
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="/v1.0.0/genai-introduction">
+    Complete documentation and guides
+  </Card>
+  
+  <Card title="GitHub" icon="github" href="https://github.com/datalumina/genai-launchpad">
+    Report issues and contribute
+  </Card>
+</CardGroup>

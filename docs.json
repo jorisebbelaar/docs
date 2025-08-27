@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "theme": "maple",
+  "name": "GenAI Launchpad | Datalumina",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#3b82f6",
+    "light": "#60a5fa",
+    "dark": "#2563eb"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -16,112 +16,55 @@
           {
             "group": "Introduction",
             "pages": [
-              "genai-introduction"
+              "docs/genai-introduction"
             ]
           },
           {
             "group": "Getting Started",
             "pages": [
-              "genai-requirements",
-              "genai-installation"
+              "docs/genai-requirements",
+              "docs/genai-installation"
             ]
           },
           {
             "group": "Quickstart Guide",
             "pages": [
-              "genai-quickstart-overview",
-              "genai-quickstart-schema",
-              "genai-quickstart-workflow-definition",
-              "genai-quickstart-endpoint",
-              "genai-quickstart-workflow-implementation",
-              "genai-quickstart-testing",
-              "genai-quickstart-e2e-testing"
+              "docs/genai-quickstart-overview",
+              "docs/genai-quickstart-schema",
+              "docs/genai-quickstart-workflow-definition",
+              "docs/genai-quickstart-endpoint",
+              "docs/genai-quickstart-workflow-implementation",
+              "docs/genai-quickstart-testing",
+              "docs/genai-quickstart-e2e-testing"
             ]
           },
           {
             "group": "Core Components",
             "pages": [
-              "genai-schemas",
-              "genai-fast-api",
-              "genai-celery-workers",
-              "genai-supabase",
-              "genai-prompt-management"
+              "docs/genai-schemas",
+              "docs/genai-fast-api",
+              "docs/genai-celery-workers",
+              "docs/genai-supabase",
+              "docs/genai-prompt-management"
             ]
           },
           {
             "group": "Core Architecture",
             "pages": [
-              "genai-core-overview",
-              "genai-core-workflow",
-              "genai-core-task-context",
-              "genai-core-nodes",
-              "genai-core-base-node",
-              "genai-core-agent-node",
-              "genai-core-concurrent-node",
-              "genai-core-router-node"
+              "docs/genai-core-overview",
+              "docs/genai-core-workflow",
+              "docs/genai-core-task-context",
+              "docs/genai-core-nodes",
+              "docs/genai-core-base-node",
+              "docs/genai-core-agent-node",
+              "docs/genai-core-concurrent-node",
+              "docs/genai-core-router-node"
             ]
           },
           {
             "group": "Examples",
             "pages": [
-              "genai-chat-example"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "docs/genai-chat-example"
             ]
           }
         ]
@@ -129,21 +72,6 @@
     ],
     "global": {
       "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
       ]
     }
   },
@@ -166,15 +94,8 @@
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy"
+    ]
   },
   "footer": {
     "socials": {

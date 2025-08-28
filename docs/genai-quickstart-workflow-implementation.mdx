@@ -36,7 +36,7 @@ All nodes are located in the folder: `app/workflows/customer_care_workflow_nodes
 
 ### AnalyzeTicketNode
 
-Since our three analysis operations are independent, we use `ConcurrentNode` to run them in parallel:
+Since our three analysis operations are independent, we use `ConcurrentNode` to run them simultaneously:
 
 ```python
 class AnalyzeTicketNode(ConcurrentNode):

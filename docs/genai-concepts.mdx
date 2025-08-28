@@ -1,0 +1,260 @@
+---
+title: "Core Concepts"
+description: "Understanding the fundamental concepts behind GenAI Launchpad"
+---
+
+New to event-driven architecture or distributed systems? This guide explains the core concepts you'll encounter in GenAI Launchpad.
+
+## What is Event-Driven Architecture?
+
+<Info>
+Think of event-driven architecture like a restaurant kitchen: orders (events) come in, get queued up, and different stations (workers) handle them independently. The waiter doesn't wait at the kitchen - they drop off the order and come back later for the result.
+</Info>
+
+### Traditional vs. Event-Driven
+
+<Tabs>
+  <Tab title="Traditional (Synchronous)">
+    ```python
+    # User waits while everything processes
+    def handle_request(data):
+        result = process_data(data)  # Takes 30 seconds
+        send_email(result)           # Takes 5 seconds
+        update_database(result)      # Takes 2 seconds
+        return result                # User waited 37 seconds!
+    ```
+    
+    **Problems:**
+    - User waits for everything to complete
+    - If one step fails, everything fails
+    - Can't handle many requests at once
+  </Tab>
+  
+  <Tab title="Event-Driven (Asynchronous)">
+    ```python
+    # User gets immediate response
+    def handle_request(data):
+        task_id = queue_for_processing(data)  # Takes 0.1 seconds
+        return {"task_id": task_id}           # User gets response immediately!
+    
+    # Processing happens in the background
+    def background_worker():
+        task = get_next_task()
+        result = process_data(task.data)
+        send_email(result)
+        update_database(result)
+    ```
+    
+    **Benefits:**
+    - Immediate response to user
+    - Failures can be retried
+    - Scale by adding more workers
+  </Tab>
+</Tabs>
+
+## Why Event-Driven for AI Applications?
+
+<CardGroup cols={2}>
+  <Card title="AI Models are Slow" icon="clock">
+    LLM calls can take 5-30+ seconds. Users shouldn't wait staring at a loading screen.
+  </Card>
+  
+  <Card title="AI Tasks Often Fail" icon="rotate">
+    Rate limits, timeouts, and model errors happen. Event-driven lets you retry automatically.
+  </Card>
+  
+  <Card title="Complex Workflows" icon="diagram-project">
+    AI apps often chain multiple models. Event-driven handles these complex flows naturally.
+  </Card>
+  
+  <Card title="Cost Management" icon="dollar">
+    Process expensive AI operations during off-peak hours or batch them for efficiency.
+  </Card>
+</CardGroup>
+
+## Understanding the Components
+
+### 1. Events
+
+<Info>
+An **event** is just data describing something that happened. In GenAI Launchpad, it's a JSON object with information about what needs to be processed.
+</Info>
+
+```python
+# Example event
+{
+    "type": "customer_support_ticket",
+    "data": {
+        "customer_email": "user@example.com",
+        "message": "I need help with my order"
+    }
+}
+```
+
+### 2. Workflows
+
+<Info>
+A **workflow** is a series of steps (nodes) that process an event. Think of it as a recipe that defines how to handle each type of event.
+</Info>
+
+```mermaid
+graph LR
+    Event --> Node1[Validate Data]
+    Node1 --> Node2[Call AI Model]
+    Node2 --> Node3[Save Results]
+    Node3 --> Response
+```
+
+### 3. Nodes
+
+<Info>
+**Nodes** are individual processing steps. Each node does one specific task, making workflows modular and reusable.
+</Info>
+
+Types of nodes explained simply:
+
+<AccordionGroup>
+  <Accordion title="Node - Basic Processing">
+    Does regular programming tasks like validation, calculations, or database updates.
+    ```python
+    class ValidateEmailNode(Node):
+        def process(self, data):
+            if "@" not in data.email:
+                raise ValueError("Invalid email")
+            return data
+    ```
+  </Accordion>
+  
+  <Accordion title="AgentNode - AI Processing">
+    Calls AI models like GPT-4 or Claude to process text, generate responses, or analyze data.
+    ```python
+    class GenerateResponseNode(AgentNode):
+        def process(self, data):
+            response = call_ai_model(data.message)
+            return response
+    ```
+  </Accordion>
+  
+  <Accordion title="ConcurrentNode - Parallel Processing">
+    Runs multiple nodes at the same time for faster processing.
+    ```python
+    # Instead of: A → B → C (takes 30 seconds)
+    # Do: A, B, C all at once (takes 10 seconds)
+    ```
+  </Accordion>
+  
+  <Accordion title="RouterNode - Decision Making">
+    Chooses which node to run next based on conditions.
+    ```python
+    # If spam → Delete
+    # If urgent → Escalate
+    # Otherwise → Normal processing
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Message Queues Explained
+
+<Info>
+A **message queue** is like a to-do list that multiple workers can pull tasks from. GenAI Launchpad uses Celery + Redis for this.
+</Info>
+
+### How It Works
+
+<Steps>
+  <Step title="Event Arrives">
+    Your API receives a request and creates an event
+  </Step>
+  
+  <Step title="Queue Event">
+    The event gets added to a queue (like adding a ticket to a pile)
+  </Step>
+  
+  <Step title="Worker Picks Up">
+    A free worker grabs the next event from the queue
+  </Step>
+  
+  <Step title="Process Event">
+    The worker runs the workflow for that event
+  </Step>
+  
+  <Step title="Store Results">
+    Results are saved to the database
+  </Step>
+  
+  <Step title="Notify Complete">
+    Optional: Send a webhook or update the UI
+  </Step>
+</Steps>
+
+## Database and Persistence
+
+<Warning>
+In event-driven systems, everything important gets saved to a database. This ensures nothing is lost if a worker crashes or the system restarts.
+</Warning>
+
+GenAI Launchpad saves:
+- Every event that comes in
+- The status of processing (pending, processing, complete, failed)
+- All results from workflows
+- Error messages for debugging
+
+## Real-World Analogy
+
+Think of GenAI Launchpad like an Amazon fulfillment center:
+
+1. **Order Placement** (Event Creation): You place an order online
+2. **Order Queue** (Message Queue): Your order joins thousands of others
+3. **Warehouse Workers** (Celery Workers): Multiple workers process orders simultaneously
+4. **Picking Stations** (Nodes): Each station handles a specific task
+5. **Quality Check** (Validation Nodes): Orders are verified before shipping
+6. **Shipping** (Response): You get notified when complete
+
+## When to Use GenAI Launchpad
+
+✅ **Good Fit:**
+- AI-powered applications with multiple model calls
+- Processing that takes more than a few seconds
+- Workflows that need retry logic
+- Applications that need to scale
+- Complex multi-step processes
+
+❌ **Not Ideal For:**
+- Simple CRUD applications
+- Real-time gaming or trading (need sub-second responses)
+- Basic websites without AI features
+- Projects with very simple logic
+
+## Common Misconceptions
+
+<AccordionGroup>
+  <Accordion title="It's too complex for small projects">
+    **Reality**: The initial setup pays off quickly. Even small projects benefit from retry logic and scalability.
+  </Accordion>
+  
+  <Accordion title="I need to understand everything to start">
+    **Reality**: You can start with basic workflows and gradually learn advanced features. The framework handles the complex parts.
+  </Accordion>
+  
+  <Accordion title="It's only for AI applications">
+    **Reality**: While optimized for AI, it works great for any long-running or complex processing tasks.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you understand the concepts:
+
+<CardGroup cols={2}>
+  <Card title="Check Prerequisites" icon="check" href="/docs/genai-prerequisites">
+    Ensure you have the required knowledge
+  </Card>
+  
+  <Card title="Try Hello World" icon="hand-wave" href="/docs/genai-hello-world">
+    Start with the simplest possible workflow
+  </Card>
+</CardGroup>
+
+<Tip>
+Remember: You don't need to master everything at once. Start simple, and complexity will make sense as you build.
+</Tip>

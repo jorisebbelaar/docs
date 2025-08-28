@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "maple",
+  "theme": "mint",
   "name": "GenAI Launchpad | Datalumina",
   "colors": {
     "primary": "#3b82f6",
@@ -16,7 +16,8 @@
           {
             "group": "Introduction",
             "pages": [
-              "docs/genai-introduction"
+              "docs/genai-introduction",
+              "docs/genai-concepts"
             ]
           },
           {
